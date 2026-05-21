@@ -62,9 +62,9 @@
 
   <script>
     /*
-      ÖNEMLİ:
-      Buraya Mysoft kullanıcı adı / şifre koymuyoruz.
-      Bu sayfa sadece URL parametrelerini okuyup güvenli Worker endpoint'ine iletecek.
+      Bu sayfa sadece URL parametrelerini okur.
+      Mysoft kullanıcı adı / şifre burada yoktur.
+      Mysoft RET işlemi Cloudflare Worker üzerinden yapılır.
     */
 
     const WORKER_ENDPOINT = "https://wurth-iys-ret.fatihmehmetergin.workers.dev";
@@ -86,8 +86,23 @@
     }
 
     function redirectToOriginalLink() {
-      if (redirect) {
-        window.location.href = redirect;
+      if (!redirect) return;
+
+      try {
+        const redirectUrl = new URL(redirect);
+
+        const allowedHosts = [
+          "e-bulten.wurth.com.tr"
+        ];
+
+        if (!allowedHosts.includes(redirectUrl.hostname)) {
+          debugEl.textContent = "Güvenli olmayan yönlendirme engellendi.";
+          return;
+        }
+
+        window.location.href = redirectUrl.toString();
+      } catch (error) {
+        debugEl.textContent = "Yönlendirme bağlantısı geçersiz.";
       }
     }
 
@@ -102,9 +117,8 @@
         return;
       }
 
-      if (!WORKER_ENDPOINT || WORKER_ENDPOINT === "BURAYA_CLOUDFLARE_WORKER_URL_GELECEK") {
-        finishMessage("Ara endpoint tanımlanmadı.", "Cloudflare Worker URL bilgisi eklendikten sonra işlem çalışacaktır.");
-        debugEl.textContent = "E-posta: " + email + " | Aksiyon: " + action + " | Kaynak: " + source;
+      if (!WORKER_ENDPOINT) {
+        finishMessage("Ara endpoint tanımlanmadı.", "Cloudflare Worker URL bilgisi bulunamadı.");
         return;
       }
 
